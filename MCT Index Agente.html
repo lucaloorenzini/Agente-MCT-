@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCT — Agente di Indagine Strategica</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#9E231E;--red2:#c4372f;--red-pale:#f9edec;
+  --gray:#7C6A65;--dark:#231F20;
+  --bg:#ffffff;--bg2:#f8f6f5;--bg3:#f0ece9;
+  --text:#231F20;--text2:#7C6A65;--text3:#a89890;
+  --border:rgba(124,106,101,0.2);--border2:rgba(124,106,101,0.35);
+  --radius:8px;--radius2:12px;
+  --green-bg:#eaf5ec;--green-text:#1A5E2A;
+  --yellow-bg:#fff8e6;--yellow-text:#7A5000;
+  --red-bg:#fceaea;--red-text:#8B0000;
+  --shadow:0 2px 12px rgba(35,31,32,0.08);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1618;--bg2:#231f20;--bg3:#2d2728;
+    --text:#f0ece9;--text2:#a89890;--text3:#7C6A65;
+    --border:rgba(168,152,144,0.15);--border2:rgba(168,152,144,0.25);
+    --red-pale:#2d1a19;
+    --green-bg:#0d2414;--yellow-bg:#1e1800;--red-bg:#1e0b0b;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:var(--text);background:var(--bg);min-height:100vh;line-height:1.5}
+a{color:var(--red);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* LAYOUT */
+.app{max-width:900px;margin:0 auto;padding:0 20px 60px}
+
+/* HEADER */
+.header{padding:20px 0 0;display:flex;align-items:center;gap:16px;border-bottom:2px solid var(--red);margin-bottom:24px}
+.header-brand{font-size:11px;font-weight:700;color:var(--red);letter-spacing:.1em;text-transform:uppercase;padding-right:16px;border-right:1px solid var(--border2);padding-bottom:14px}
+.header-nav{display:flex;gap:0;flex:1;padding-bottom:0}
+.tab{padding:8px 16px 14px;font-size:13px;cursor:pointer;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tab:hover{color:var(--red)}
+.tab.active{color:var(--red);border-bottom:2px solid var(--red);font-weight:500}
+.tab svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* SEZIONI */
+.section{display:none}
+.section.active{display:block}
+
+/* CARD */
+.card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius2);padding:16px 20px;margin-bottom:12px}
+.card-header{font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.card-header svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+
+/* RICERCA */
+.search-hero{background:var(--red);border-radius:var(--radius2);padding:20px 24px;margin-bottom:16px}
+.search-hero h1{font-size:18px;font-weight:600;color:#fff;margin-bottom:4px;font-family:Georgia,serif}
+.search-hero p{color:rgba(255,255,255,.65);font-size:12.5px}
+.input-row{display:flex;gap:8px;margin-bottom:14px}
+.input-row input{flex:1;font-size:14px;padding:11px 16px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);transition:border-color .15s}
+.input-row input:focus{outline:none;border-color:var(--red)}
+.input-row input::placeholder{color:var(--text3)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:none;white-space:nowrap}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:hover{background:var(--red2)}
+.btn-primary:disabled{background:var(--text3);cursor:not-allowed}
+.btn-secondary{background:var(--bg2);color:var(--text2);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg3)}
+.btn-full{width:100%;justify-content:center;padding:12px 20px;font-size:14px}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* LAYER 0 GRID */
+.l0-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.l0-item{background:var(--bg2);border-radius:var(--radius);padding:10px 12px;border:1px solid var(--border)}
+.l0-item .l0-label{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500}
+.l0-item .l0-val{font-size:13px;font-weight:500}
+.l0-hit{color:var(--green-text)}
+.l0-warn{color:var(--yellow-text)}
+.l0-miss{color:var(--text3);font-style:italic;font-weight:400}
+
+/* PROMPT BOX */
+.prompt-box{border:1px solid rgba(158,35,30,.3);border-radius:var(--radius2);background:var(--red-pale);padding:14px 16px;margin-bottom:12px}
+.prompt-box .pb-head{font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.prompt-box .pb-text{font-size:12.5px;line-height:1.65;white-space:pre-wrap;max-height:220px;overflow-y:auto;color:var(--text);font-family:'SFMono-Regular',Consolas,monospace}
+.token-badge{font-size:11px;color:var(--gray);font-weight:400;font-family:sans-serif}
+
+/* ALERT BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.badge-R{background:var(--red-bg);color:var(--red-text)}
+.badge-G{background:var(--yellow-bg);color:var(--yellow-text)}
+.badge-V{background:var(--green-bg);color:var(--green-text)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-R{background:#C0392B}.dot-G{background:#D4AC0D}.dot-V{background:#27AE60}
+
+/* REPOSITORY */
+.repo-top{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border-radius:var(--radius);padding:12px 14px;text-align:center}
+.stat-card .sv{font-size:26px;font-weight:600;color:var(--red);line-height:1}
+.stat-card .sl{font-size:11px;color:var(--text3);margin-top:4px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filters input{flex:1;min-width:160px;font-size:13px;padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+.filters input:focus{outline:none;border-color:var(--red)}
+.filter-btn{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);cursor:pointer;background:var(--bg);color:var(--text2);transition:all .1s;white-space:nowrap}
+.filter-btn.active{background:var(--red);color:#fff;border-color:var(--red)}
+.repo-card{border:1px solid var(--border);border-radius:var(--radius2);background:var(--bg);padding:12px 16px;margin-bottom:8px;display:flex;gap:12px;transition:border-color .15s;cursor:default}
+.repo-card:hover{border-color:var(--border2)}
+.repo-icon{width:38px;height:38px;border-radius:var(--radius);background:var(--bg2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text2)}
+.repo-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.5}
+.repo-body{flex:1;min-width:0}
+.repo-top-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px}
+.repo-target{font-weight:600;font-size:13px}
+.repo-region{font-size:11px;color:var(--text3)}
+.repo-date{font-size:11px;color:var(--text3);margin-left:auto}
+.repo-note{font-size:12.5px;color:var(--text2);line-height:1.5;margin-top:4px}
+.repo-tags{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.tag-mct{background:rgba(158,35,30,.08);color:var(--red);border-color:rgba(158,35,30,.2)}
+.tag-urg{background:var(--red-bg);color:var(--red-text);border-color:rgba(158,35,30,.3)}
+.empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:13px}
+
+/* ARCHITETTURA */
+.arch-intro{font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.layers{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+.layer{display:flex;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius2);background:var(--bg)}
+.layer-num{width:32px;height:32px;border-radius:var(--radius);background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;margin-top:1px}
+.layer-body{flex:1}
+.layer-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.layer-desc{font-size:12.5px;color:var(--text2);line-height:1.55}
+.layer-tags{display:flex;gap:4px;margin-top:7px;flex-wrap:wrap}
+.kb-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:14px}
+.kb-card{background:var(--bg2);border-radius:var(--radius);padding:10px 12px;border:1px solid var(--border)}
+.kb-card .kc-gap{font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.kb-card .kc-title{font-size:12.5px;font-weight:600;margin-bottom:2px}
+.kb-card .kc-desc{font-size:11px;color:var(--text3);line-height:1.4}
+
+/* IMPOSTAZIONI */
+.settings-section{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.settings-section:last-child{border-bottom:none}
+.settings-section h3{font-size:13px;font-weight:600;margin-bottom:14px}
+.setting-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.setting-row label{font-size:12.5px;color:var(--text2);width:160px;flex-shrink:0}
+.setting-row input[type=text],.setting-row input[type=password]{flex:1;font-size:13px;padding:9px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-family:monospace}
+.setting-row input:focus{outline:none;border-color:var(--red)}
+.setting-row select{flex:1;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text)}
+.status-row{display:flex;align-items:center;gap:8px}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sdot-ok{background:#27AE60}.sdot-warn{background:#D4AC0D}.sdot-err{background:#C0392B}
+.status-label{font-size:12.5px;color:var(--text2)}
+.info-note{font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--radius);padding:10px 14px;line-height:1.55;border-left:3px solid var(--red);margin-top:10px}
+.db-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+.db-row:last-child{border-bottom:none}
+.db-row .db-label{color:var(--text2);width:160px;flex-shrink:0}
+.db-row .db-val{color:var(--text);font-weight:500}
+
+/* LOADING */
+.loading{display:none;text-align:center;padding:32px;color:var(--text2);font-size:13px}
+.spinner{width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .l0-grid{grid-template-columns:1fr}
+  .kb-grid{grid-template-columns:1fr 1fr}
+  .repo-top{grid-template-columns:1fr 1fr 1fr}
+  .setting-row{flex-wrap:wrap}
+  .setting-row label{width:100%}
+  .header-brand{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <span class="header-brand">MCT</span>
+    <nav class="header-nav">
+      <button class="tab active" onclick="showTab('ricerca')" id="tab-ricerca">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Ricerca
+      </button>
+      <button class="tab" onclick="showTab('repository')" id="tab-repository">
+        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        Repository
+      </button>
+      <button class="tab" onclick="showTab('architettura')" id="tab-architettura">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Architettura
+      </button>
+      <button class="tab" onclick="showTab('impostazioni')" id="tab-impostazioni">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Impostazioni
+      </button>
+    </nav>
+  </header>
+
+  <!-- ═══ RICERCA ═══ -->
+  <div id="sec-ricerca" class="section active">
+    <div class="search-hero">
+      <h1>Agente di Indagine Strategica</h1>
+      <p>Inserisci il target nel formato: Regione / Comune &nbsp;·&nbsp; Il Layer 0 si esegue automaticamente</p>
+    </div>
+
+    <div class="input-row">
+      <input type="text" id="target-input" placeholder="es. Toscana / Siena &nbsp;&nbsp;oppure&nbsp;&nbsp; Molise / Agnone"
+        oninput="onTargetChange(this.value)" onkeydown="if(event.key==='Enter')avvia()" autocomplete="off" />
+      <button class="btn btn-primary" id="btn-avvio" onclick="avvia()" disabled>
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Avvia
+      </button>
+    </div>
+
+    <div id="layer0-box" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          Layer 0 — incrocio dati proprietari MCT
+        </div>
+        <div class="l0-grid" id="l0-grid"></div>
+      </div>
+
+      <div class="prompt-box">
+        <div class="pb-head">
+          <span>Prompt pre-compilato per Claude</span>
+          <span class="token-badge" id="token-est"></span>
+        </div>
+        <div class="pb-text" id="prompt-text"></div>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-send" onclick="invia()">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Invia a Claude e avvia ricerca completa
+      </button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      Elaborazione in corso...
+    </div>
+  </div>
+
+  <!-- ═══ REPOSITORY ═══ -->
+  <div id="sec-repository" class="section">
+    <div class="repo-top">
+      <div class="stat-card"><div class="sv" id="stat-tot">0</div><div class="sl">report totali</div></div>
+      <div class="stat-card"><div class="sv" id="stat-mct">0</div><div class="sl">workflow MCT</div></div>
+      <div class="stat-card"><div class="sv" id="stat-gem">0</div><div class="sl">archivio Gemini</div></div>
+    </div>
+    <div class="filters">
+      <input type="text" id="repo-q" placeholder="Cerca target, regione, note..." oninput="renderRepo()">
+      <button class="filter-btn active" data-f="all" onclick="setFilter('all',this)">Tutti</button>
+      <button class="filter-btn" data-f="R" onclick="setFilter('R',this)">🔴 Urgente</button>
+      <button class="filter-btn" data-f="G" onclick="setFilter('G',this)">🟡 Monitorare</button>
+      <button class="filter-btn" data-f="V" onclick="setFilter('V',this)">🟢 Archivio</button>
+      <button class="filter-btn" data-f="MCT" onclick="setFilter('MCT',this)">MCT</button>
+      <button class="filter-btn" data-f="Gemini" onclick="setFilter('Gemini',this)">Gemini</button>
+    </div>
+    <div id="repo-list"></div>
+  </div>
+
+  <!-- ═══ ARCHITETTURA ═══ -->
+  <div id="sec-architettura" class="section">
+    <div class="arch-intro">
+      Il workflow a 5 layer produce ogni indagine partendo dai dati proprietari MCT verso l'intelligence esterna verificata su fonti ufficiali. La Knowledge Base precaricata orienta ogni strato, garantendo coerenza metodologica su qualsiasi target arbitrario.
+    </div>
+    <div class="layers">
+      <div class="layer">
+        <div class="layer-num">0</div>
+        <div class="layer-body">
+          <div class="layer-title">Incrocio dati proprietari MCT</div>
+          <div class="layer-desc">Verifica automatica nei DB interni: 462 comuni clienti Municipium/Protocollo/Segreteria (SMUN·SIRE·SJIR), 30 comuni nel prospect del direttore, 14 report KB-RAG indicizzati. Output: profilo commerciale di partenza.</div>
+          <div class="layer-tags"><span class="tag tag-mct">DB Clienti 462</span><span class="tag tag-mct">Prospect 30</span><span class="tag tag-mct">KB-RAG 14 report</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="layer-num">1</div>
+        <div class="layer-body">
+          <div class="layer-title">Contestualizzazione territorio</div>
+          <div class="layer-desc">Contesto regionale → provinciale → comunale. Attinge alle Schede Regionali (KB Gap 4+5): competitor locali, fondi strutturali, normativa museale regionale, accreditamento SMN.</div>
+          <div class="layer-tags"><span class="tag tag-mct">KB Gap 4+5</span><span class="tag tag-mct">KB Gap 3</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="layer-num">2</div>
+        <div class="layer-body">
+          <div class="layer-title">Ricerche parallele A + B + C + D</div>
+          <div class="layer-desc">A: Siti culturali e patrimonio · B: Associazioni museali di categoria · C: Istituzioni MiC ad autonomia speciale · D: Comuni già clienti MCT su altri prodotti. Quattro fronti simultanei.</div>
+          <div class="layer-tags"><span class="tag tag-mct">KB Gap 1</span><span class="tag tag-mct">KB Gap 2</span><span class="tag">DB Associazioni</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="layer-num">3</div>
+        <div class="layer-body">
+          <div class="layer-title">Intelligence esterna da fonti ufficiali</div>
+          <div class="layer-desc">BDNCP/ANAC (CIG, contratti, scadenze) · OpenCoesione/Italia Domani (PNRR) · Albo Pretorio comunale · Stampa locale P1/P2 (KB Gap 6) · Segnali di attrito · Fonti terziarie.</div>
+          <div class="layer-tags"><span class="tag tag-mct">KB Gap 6</span><span class="tag">ANAC · PNRR · Stampa</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="layer-num">4</div>
+        <div class="layer-body">
+          <div class="layer-title">Scoring affinità con il case study Fermo</div>
+          <div class="layer-desc">4 criteri × 5 punti = /20: (1) Patrimonio sottoutilizzato · (2) Assenza digitalizzazione · (3) Fondi PNRR disponibili · (4) Frammentazione gestionale. Con motivazione analitica per criterio.</div>
+          <div class="layer-tags"><span class="tag">Case Study Fermo</span><span class="tag">Benchmark Silanus</span></div>
+        </div>
+      </div>
+      <div class="layer">
+        <div class="layer-num">5</div>
+        <div class="layer-body">
+          <div class="layer-title">Output strategico — documenti .docx</div>
+          <div class="layer-desc">Doc 1: Scheda Riepilogativa (tabella verticale con alert cromatici) · Doc 2: Report Strategico 6–8pp con fonti numerate. Palette MCT ufficiale. Archiviazione in KB-RAG Archive Index.</div>
+          <div class="layer-tags"><span class="tag tag-mct">Scheda .docx</span><span class="tag tag-mct">Report .docx</span><span class="tag tag-mct">KB-RAG aggiornato</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        Knowledge Base precaricata — 7 documenti strutturati
+      </div>
+      <div class="kb-grid">
+        <div class="kb-card"><div class="kc-gap">Gap 1</div><div class="kc-title">Mappa Competitiva</div><div class="kc-desc">Top player, sub-player 18, posizionamento MCT, radar acquisizioni</div></div>
+        <div class="kb-card"><div class="kc-gap">Gap 2</div><div class="kc-title">Catalogo MCT</div><div class="kc-desc">P1–P6 prodotti, S1–S5 servizi, matrice trigger 20×11</div></div>
+        <div class="kb-card"><div class="kc-gap">Gap 3</div><div class="kc-title">Quadro Normativo</div><div class="kc-desc">D.Lgs. 36/2023, D.Lgs. 42/2004, PNRR M1C3, SMN</div></div>
+        <div class="kb-card"><div class="kc-gap">Gap 4+5</div><div class="kc-title">Schede Regionali</div><div class="kc-desc">13 regioni: fondi, competitor locali, accreditamento</div></div>
+        <div class="kb-card"><div class="kc-gap">Gap 6</div><div class="kc-title">Fonti Attrito</div><div class="kc-desc">P1/P2/P3/IST/TER per 13 regioni + guida segnali</div></div>
+        <div class="kb-card"><div class="kc-gap">RAG</div><div class="kc-title">Archive Index</div><div class="kc-desc">14 report indicizzati. Cresce ad ogni ricerca completata.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ IMPOSTAZIONI ═══ -->
+  <div id="sec-impostazioni" class="section">
+
+    <div class="settings-section">
+      <h3>Connessione API Anthropic</h3>
+      <div class="setting-row">
+        <label>Chiave API</label>
+        <input type="password" id="api-key" placeholder="sk-ant-api03-..." oninput="saveSettings()">
+      </div>
+      <div class="setting-row">
+        <label>Modello</label>
+        <select id="api-model" onchange="saveSettings()">
+          <option value="claude-sonnet-4-20250514">Claude Sonnet 4 (consigliato)</option>
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (rapido)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>Lunghezza risposta</label>
+        <select id="max-tokens" onchange="saveSettings()">
+          <option value="8000">8.000 token (rapido)</option>
+          <option value="16000">16.000 token (intermedio)</option>
+          <option value="32000" selected>32.000 token (default consigliato)</option><option value="64000">64.000 token (massimo assoluto)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label>Stato</label>
+        <div class="status-row">
+          <div class="sdot sdot-warn" id="api-sdot"></div>
+          <span class="status-label" id="api-slabel">Chiave non configurata</span>
+          <button class="btn btn-secondary" onclick="testApi()" style="margin-left:12px;padding:6px 14px;font-size:12px">Test connessione</button>
+        </div>
+      </div>
+      <div class="info-note">
+        La chiave API viene salvata nel tuo browser (localStorage) e non viene mai trasmessa a server terzi. Viene utilizzata esclusivamente per le chiamate dirette all'API Anthropic da questa pagina.
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Database precaricati</h3>
+      <div class="db-row"><span class="db-label">Clienti MCT</span><span class="db-val">&#10003; 462 comuni (SMUN · SIRE · SJIR · SSET)</span></div>
+      <div class="db-row"><span class="db-label">Prospect</span><span class="db-val">&#10003; 30 comuni con priorità e affinità Fermo</span></div>
+      <div class="db-row"><span class="db-label">KB documenti</span><span class="db-val">&#10003; 7 Gap strutturati + 14 report KB-RAG</span></div>
+      <div class="db-row"><span class="db-label">Ultimo aggiornamento</span><span class="db-val">Maggio 2026</span></div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Sessione corrente</h3>
+      <div class="db-row"><span class="db-label">Ricerche avviate</span><span class="db-val" id="sess-count">0</span></div>
+      <div class="db-row"><span class="db-label">Ultimo target</span><span class="db-val" id="sess-last">—</span></div>
+      <div style="margin-top:14px">
+        <button class="btn btn-secondary" onclick="clearSession()">Pulisci sessione</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <h3>Informazioni</h3>
+      <div class="db-row"><span class="db-label">Versione</span><span class="db-val">1.0 — Maggio 2026</span></div>
+      <div class="db-row"><span class="db-label">Progetto</span><span class="db-val">Maggioli Cultura e Turismo — Agente di Indagine Strategica</span></div>
+      <div class="db-row"><span class="db-label">Sviluppato con</span><span class="db-val">Claude + Luca Lorenzini</span></div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const CLIENTI = [{"c":"ABANO TERME","p":"PD","r":"VENETO","f":["SJIR"]},{"c":"ABBIATEGRASSO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"ACI CASTELLO","p":"CT","r":"SICILIA","f":["SJIR","SMUN"]},{"c":"ACI CATENA","p":"CT","r":"SICILIA","f":["SJIR","SMUN"]},{"c":"ACIREALE","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"ADRIA","p":"RO","r":"VENETO","f":["SJIR"]},{"c":"AGRATE BRIANZA","p":"MB","r":"LOMBARDIA","f":["SMUN"]},{"c":"AGROPOLI","p":"SA","r":"CAMPANIA","f":["SJIR","SMUN"]},{"c":"ALBA","p":"CN","r":"PIEMONTE","f":["SMUN"]},{"c":"ALBENGA","p":"SV","r":"LIGURIA","f":["SIRE","SJIR","SMUN"]},{"c":"ALBINO","p":"BG","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"ALCAMO","p":"TP","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"ALESSANDRIA","p":"AL","r":"PIEMONTE","f":["SMUN"]},{"c":"ALGHERO","p":"SS","r":"SARDEGNA","f":["SIRE","SJIR","SMUN"]},{"c":"ALPIGNANO","p":"TO","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"ALTAMURA","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"ALTOPASCIO","p":"LU","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"ANCONA","p":"AN","r":"MARCHE","f":["SIRE","SMUN"]},{"c":"ANDRIA","p":"BT","r":"PUGLIA","f":["SIRE","SMUN"]},{"c":"ANZIO","p":"RM","r":"LAZIO","f":["SIRE","SJIR"]},{"c":"AOSTA","p":"AO","r":"VALLE D'AOSTA","f":["SIRE","SJIR","SMUN"]},{"c":"APRILIA","p":"LT","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"ARCO","p":"TN","r":"TRENTINO ALTO ADIGE","f":["SIRE"]},{"c":"ARCORE","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"ARESE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"AREZZO","p":"AR","r":"TOSCANA","f":["SMUN"]},{"c":"ARGENTA","p":"FE","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"ARIANO IRPINO","p":"AV","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"ARICCIA","p":"RM","r":"LAZIO","f":["SIRE","SMUN"]},{"c":"ARZIGNANO","p":"VI","r":"VENETO","f":["SIRE","SMUN"]},{"c":"ASCOLI PICENO","p":"AP","r":"MARCHE","f":["SMUN"]},{"c":"AUGUSTA","p":"SR","r":"SICILIA","f":["SJIR","SMUN"]},{"c":"AVEZZANO","p":"AQ","r":"ABRUZZO","f":["SIRE","SMUN"]},{"c":"BAGHERIA","p":"PA","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"BAGNACAVALLO","p":"RA","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"BAGNO A RIPOLI","p":"FI","r":"TOSCANA","f":["SJIR","SMUN"]},{"c":"BARI","p":"BA","r":"PUGLIA","f":["SIRE"]},{"c":"BARONISSI","p":"SA","r":"CAMPANIA","f":["SMUN"]},{"c":"BASSANO DEL GRAPPA","p":"VI","r":"VENETO","f":["SIRE","SMUN"]},{"c":"BASTIA UMBRA","p":"PG","r":"UMBRIA","f":["SMUN"]},{"c":"BATTIPAGLIA","p":"SA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"BEINASCO","p":"TO","r":"PIEMONTE","f":["SMUN"]},{"c":"BELLARIA-IGEA MARINA","p":"RN","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"BELLUNO","p":"BL","r":"VENETO","f":["SMUN"]},{"c":"BELPASSO","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"BERGAMO","p":"BG","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"BESANA IN BRIANZA","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"BIANCAVILLA","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"BIELLA","p":"BI","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"BISCEGLIE","p":"BT","r":"PUGLIA","f":["SMUN"]},{"c":"BITONTO","p":"BA","r":"PUGLIA","f":["SIRE","SMUN"]},{"c":"BOLLATE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"BOLZANO","p":"BZ","r":"TRENTINO ALTO ADIGE","f":["SIRE","SJIR","SMUN"]},{"c":"BORGO SAN LORENZO","p":"FI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"BORGOMANERO","p":"NO","r":"PIEMONTE","f":["SMUN"]},{"c":"BOVISIO-MASCIAGO","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"BRA","p":"CN","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"BRESCIA","p":"BS","r":"LOMBARDIA","f":["SJIR","SMUN"]},{"c":"BRESSANONE","p":"BZ","r":"TRENTINO ALTO ADIGE","f":["SMUN"]},{"c":"BRESSO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"BRINDISI","p":"BR","r":"PUGLIA","f":["SJIR"]},{"c":"BRUGHERIO","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"BRUSCIANO","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"BUCCINASCO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"BUSSOLENGO","p":"VR","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"BUSTO ARSIZIO","p":"VA","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CAGLIARI","p":"CA","r":"SARDEGNA","f":["SIRE"]},{"c":"CAIVANO","p":"NA","r":"CAMPANIA","f":["SJIR"]},{"c":"CALENZANO","p":"FI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"CALTANISSETTA","p":"CL","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"CAMAIORE","p":"LU","r":"TOSCANA","f":["SMUN"]},{"c":"CAMPI BISENZIO","p":"FI","r":"TOSCANA","f":["SIRE","SJIR"]},{"c":"CAMPOBASSO","p":"CB","r":"MOLISE","f":["SMUN"]},{"c":"CANICATTI'","p":"AG","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"CANTU'","p":"CO","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"CAPACCIO","p":"SA","r":"CAMPANIA","f":["SJIR"]},{"c":"CAPANNORI","p":"LU","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"CAPURSO","p":"BA","r":"PUGLIA","f":["SJIR"]},{"c":"CARATE BRIANZA","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CARAVAGGIO","p":"BG","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CARDITO","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"CARINI","p":"PA","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"CARMAGNOLA","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"CARONNO PERTUSELLA","p":"VA","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CAROVIGNO","p":"BR","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"CARRARA","p":"MS","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"CASALE MONFERRATO","p":"AL","r":"PIEMONTE","f":["SIRE","SJIR"]},{"c":"CASALECCHIO DI RENO","p":"BO","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"CASALGRANDE","p":"RE","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"CASALMAGGIORE","p":"CR","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"CASALPUSTERLENGO","p":"LO","r":"LOMBARDIA","f":["SMUN"]},{"c":"CASAMASSIMA","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"CASCINA","p":"PI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"CASSANO ALL' IONIO","p":"CS","r":"CALABRIA","f":["SIRE","SJIR","SMUN"]},{"c":"CASSANO D'ADDA","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CASSANO MAGNAGO","p":"VA","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CASTEL SAN PIETRO TERME","p":"BO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR"]},{"c":"CASTEL VOLTURNO","p":"CE","r":"CAMPANIA","f":["SJIR","SMUN"]},{"c":"CASTELFIDARDO","p":"AN","r":"MARCHE","f":["SMUN"]},{"c":"CASTELFRANCO EMILIA","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"CASTELFRANCO VENETO","p":"TV","r":"VENETO","f":["SMUN"]},{"c":"CASTELLAMMARE DEL GOLFO","p":"TP","r":"SICILIA","f":["SMUN"]},{"c":"CASTELLAMMARE DI STABIA","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"CASTELLANA GROTTE","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"CASTELLARANO","p":"RE","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"CASTELVETRANO","p":"TP","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"CASTIGLIONE DEL LAGO","p":"PG","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"CASTIGLIONE DELLE STIVIER","p":"MN","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"CATANIA","p":"CT","r":"SICILIA","f":["SMUN"]},{"c":"CATTOLICA","p":"RN","r":"EMILIA ROMAGNA","f":["SJIR","SMUN"]},{"c":"CECINA","p":"LI","r":"TOSCANA","f":["SJIR"]},{"c":"CENTO","p":"FE","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"CEREA","p":"VR","r":"VENETO","f":["SJIR"]},{"c":"CERTALDO","p":"FI","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"CERVIA","p":"RA","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"CESANO BOSCONE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CESANO MADERNO","p":"MB","r":"LOMBARDIA","f":["SMUN"]},{"c":"CESENA","p":"FC","r":"EMILIA ROMAGNA","f":["SJIR"]},{"c":"CESENATICO","p":"FC","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"CHIARI","p":"BS","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"CHIAVARI","p":"GE","r":"LIGURIA","f":["SIRE","SMUN"]},{"c":"CHIERI","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"CHIOGGIA","p":"VE","r":"VENETO","f":["SIRE"]},{"c":"CHIVASSO","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"CIAMPINO","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"CINISELLO BALSAMO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"CIRIE'","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"CISTERNA DI LATINA","p":"LT","r":"LAZIO","f":["SMUN"]},{"c":"CITTA' DI CASTELLO","p":"PG","r":"UMBRIA","f":["SIRE"]},{"c":"CIVITA CASTELLANA","p":"VT","r":"LAZIO","f":["SJIR","SMUN"]},{"c":"CIVITANOVA MARCHE","p":"MC","r":"MARCHE","f":["SMUN"]},{"c":"CIVITAVECCHIA","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"CODOGNO","p":"LO","r":"LOMBARDIA","f":["SMUN"]},{"c":"COLLE DI VAL D'ELSA","p":"SI","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"COLLEGNO","p":"TO","r":"PIEMONTE","f":["SMUN"]},{"c":"COLOGNO MONZESE","p":"MI","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"COMACCHIO","p":"FE","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"COMISO","p":"RG","r":"SICILIA","f":["SMUN"]},{"c":"COMO","p":"CO","r":"LOMBARDIA","f":["SMUN"]},{"c":"CONCESIO","p":"BS","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CONCOREZZO","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CONEGLIANO","p":"TV","r":"VENETO","f":["SMUN"]},{"c":"COPERTINO","p":"LE","r":"PUGLIA","f":["SMUN"]},{"c":"CORATO","p":"BA","r":"PUGLIA","f":["SIRE"]},{"c":"CORBETTA","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"CORMANO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CORREGGIO","p":"RE","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"CORSICO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"CREMA","p":"CR","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"CROTONE","p":"KR","r":"CALABRIA","f":["SMUN"]},{"c":"CUNEO","p":"CN","r":"PIEMONTE","f":["SMUN"]},{"c":"DALMINE","p":"BG","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"DARFO BOARIO TERME","p":"BS","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"DESENZANO DEL GARDA","p":"BS","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"DESIO","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"DOLO","p":"VE","r":"VENETO","f":["SIRE"]},{"c":"EMPOLI","p":"FI","r":"TOSCANA","f":["SIRE","SJIR"]},{"c":"ENNA","p":"EN","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"ERBA","p":"CO","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"ERICE","p":"TP","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"ESTE","p":"PD","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"FABRIANO","p":"AN","r":"MARCHE","f":["SJIR","SMUN"]},{"c":"FANO","p":"PU","r":"MARCHE","f":["SMUN"]},{"c":"FELTRE","p":"BL","r":"VENETO","f":["SMUN"]},{"c":"FERENTINO","p":"FR","r":"LAZIO","f":["SIRE","SMUN"]},{"c":"FERRARA","p":"FE","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"FIDENZA","p":"PR","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"FIORANO MODENESE","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"FIORENZUOLA D'ARDA","p":"PC","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"FIUMICINO","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"FOGGIA","p":"FG","r":"PUGLIA","f":["SJIR","SMUN"]},{"c":"FORIO","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"FORLI'","p":"FC","r":"EMILIA ROMAGNA","f":["SJIR","SMUN"]},{"c":"FORMIGINE","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"FOSSANO","p":"CN","r":"PIEMONTE","f":["SIRE","SMUN"]},{"c":"FRANCAVILLA AL MARE","p":"CH","r":"ABRUZZO","f":["SSET"]},{"c":"FRANCAVILLA FONTANA","p":"BR","r":"PUGLIA","f":["SMUN"]},{"c":"FRASCATI","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"FRATTAMAGGIORE","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"FUCECCHIO","p":"FI","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"GAETA","p":"LT","r":"LAZIO","f":["SMUN"]},{"c":"GALLARATE","p":"VA","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"GARBAGNATE MILANESE","p":"MI","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"GENZANO DI ROMA","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"GHEDI","p":"BS","r":"LOMBARDIA","f":["SMUN"]},{"c":"GIARRE","p":"CT","r":"SICILIA","f":["SJIR"]},{"c":"GIOIA DEL COLLE","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"GIOIA TAURO","p":"RC","r":"CALABRIA","f":["SIRE","SMUN"]},{"c":"GIUSSANO","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"GORGONZOLA","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"GRAVINA DI CATANIA","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"GRAVINA IN PUGLIA","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"GROSSETO","p":"GR","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"GROTTAFERRATA","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"GROTTAGLIE","p":"TA","r":"PUGLIA","f":["SIRE","SMUN"]},{"c":"GRUGLIASCO","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"GRUMO NEVANO","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"GUBBIO","p":"PG","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"IMOLA","p":"BO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR"]},{"c":"IMPERIA","p":"IM","r":"LIGURIA","f":["SMUN"]},{"c":"ISCHIA","p":"NA","r":"CAMPANIA","f":["SJIR","SMUN"]},{"c":"ISERNIA","p":"IS","r":"MOLISE","f":["SIRE","SJIR","SMUN"]},{"c":"ISOLA DI CAPO RIZZUTO","p":"KR","r":"CALABRIA","f":["SJIR"]},{"c":"ISPICA","p":"RG","r":"SICILIA","f":["SJIR","SMUN"]},{"c":"IVREA","p":"TO","r":"PIEMONTE","f":["SMUN"]},{"c":"JESI","p":"AN","r":"MARCHE","f":["SIRE","SJIR","SMUN"]},{"c":"L'AQUILA","p":"AQ","r":"ABRUZZO","f":["SMUN"]},{"c":"LA SPEZIA","p":"SP","r":"LIGURIA","f":["SIRE"]},{"c":"LADISPOLI","p":"RM","r":"LAZIO","f":["SIRE","SMUN"]},{"c":"LAINATE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"LAMEZIA TERME","p":"CZ","r":"CALABRIA","f":["SIRE","SMUN","SSET"]},{"c":"LASTRA A SIGNA","p":"FI","r":"TOSCANA","f":["SJIR","SMUN"]},{"c":"LATINA","p":"LT","r":"LAZIO","f":["SJIR"]},{"c":"LECCE","p":"LE","r":"PUGLIA","f":["SIRE","SJIR"]},{"c":"LECCO","p":"LC","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"LEGNAGO","p":"VR","r":"VENETO","f":["SMUN"]},{"c":"LENTINI","p":"SR","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"LICATA","p":"AG","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"LIMBIATE","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"LISSONE","p":"MB","r":"LOMBARDIA","f":["SMUN"]},{"c":"LIVORNO","p":"LI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"LODI","p":"LO","r":"LOMBARDIA","f":["SMUN"]},{"c":"LONATO DEL GARDA","p":"BS","r":"LOMBARDIA","f":["SMUN"]},{"c":"LONIGO","p":"VI","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"LUCCA","p":"LU","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"LUGO","p":"RA","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"LUMEZZANE","p":"BS","r":"LOMBARDIA","f":["SJIR","SMUN"]},{"c":"LUSCIANO","p":"CE","r":"CAMPANIA","f":["SMUN"]},{"c":"MACERATA","p":"MC","r":"MARCHE","f":["SMUN"]},{"c":"MAGENTA","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"MANFREDONIA","p":"FG","r":"PUGLIA","f":["SMUN"]},{"c":"MANTOVA","p":"MN","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"MARANELLO","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"MARIANO COMENSE","p":"CO","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"MARIGLIANO","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"MARINO","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"MARSALA","p":"TP","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"MARSCIANO","p":"PG","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"MARTINA FRANCA","p":"TA","r":"PUGLIA","f":["SIRE","SMUN"]},{"c":"MASCALUCIA","p":"CT","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"MASSAFRA","p":"TA","r":"PUGLIA","f":["SSET"]},{"c":"MASSAROSA","p":"LU","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"MAZARA DEL VALLO","p":"TP","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"MEDICINA","p":"BO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR"]},{"c":"MELEGNANO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"MELITO DI NAPOLI","p":"NA","r":"CAMPANIA","f":["SJIR"]},{"c":"MELZO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"MENTANA","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"MERCATO SAN SEVERINO","p":"SA","r":"CAMPANIA","f":["SMUN"]},{"c":"MESSINA","p":"ME","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"MILAZZO","p":"ME","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"MINTURNO","p":"LT","r":"LAZIO","f":["SIRE","SMUN"]},{"c":"MIRANDOLA","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"MIRANO","p":"VE","r":"VENETO","f":["SJIR","SMUN"]},{"c":"MISILMERI","p":"PA","r":"SICILIA","f":["SMUN"]},{"c":"MISTERBIANCO","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"MODENA","p":"MO","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"MODICA","p":"RG","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"MOGLIANO VENETO","p":"TV","r":"VENETO","f":["SIRE","SMUN"]},{"c":"MOLINELLA","p":"BO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"MONCALIERI","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"MONDOVI'","p":"CN","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"MONOPOLI","p":"BA","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"MONSERRATO","p":"CA","r":"SARDEGNA","f":["SMUN"]},{"c":"MONSUMMANO TERME","p":"PT","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"MONTALTO UFFUGO","p":"CS","r":"CALABRIA","f":["SIRE","SJIR","SMUN"]},{"c":"MONTECATINI-TERME","p":"PT","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"MONTECCHIO MAGGIORE","p":"VI","r":"VENETO","f":["SIRE","SMUN"]},{"c":"MONTEMURLO","p":"PO","r":"TOSCANA","f":["SIRE"]},{"c":"MONTEROTONDO","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"MONTESILVANO","p":"PE","r":"ABRUZZO","f":["SJIR","SSET"]},{"c":"MONTEVARCHI","p":"AR","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"MONTICHIARI","p":"BS","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"MONTORO","p":"AV","r":"CAMPANIA","f":["SIRE","SMUN"]},{"c":"MONZA","p":"MB","r":"LOMBARDIA","f":["SJIR","SMUN"]},{"c":"MOTTOLA","p":"TA","r":"PUGLIA","f":["SMUN","SSET"]},{"c":"MUGGIO'","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"NAPOLI","p":"NA","r":"CAMPANIA","f":["SIRE","SMUN"]},{"c":"NARDO'","p":"LE","r":"PUGLIA","f":["SMUN"]},{"c":"NERVIANO","p":"MI","r":"LOMBARDIA","f":["SJIR"]},{"c":"NICHELINO","p":"TO","r":"PIEMONTE","f":["SIRE","SMUN"]},{"c":"NISCEMI","p":"CL","r":"SICILIA","f":["SMUN"]},{"c":"NOCI","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"NOICATTARO","p":"BA","r":"PUGLIA","f":["SJIR","SMUN"]},{"c":"NONANTOLA","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SJIR"]},{"c":"NOTO","p":"SR","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"NOVA MILANESE","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"NOVARA","p":"NO","r":"PIEMONTE","f":["SIRE"]},{"c":"NOVI LIGURE","p":"AL","r":"PIEMONTE","f":["SMUN"]},{"c":"ODERZO","p":"TV","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"OLBIA","p":"SS","r":"SARDEGNA","f":["SIRE","SJIR","SMUN"]},{"c":"ORBASSANO","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"ORISTANO","p":"OR","r":"SARDEGNA","f":["SIRE","SJIR","SMUN"]},{"c":"ORVIETO","p":"TR","r":"UMBRIA","f":["SMUN"]},{"c":"OTTAVIANO","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"PADERNO DUGNANO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"PAESE","p":"TV","r":"VENETO","f":["SMUN"]},{"c":"PAGANI","p":"SA","r":"CAMPANIA","f":["SMUN"]},{"c":"PALAGONIA","p":"CT","r":"SICILIA","f":["SMUN"]},{"c":"PALESTRINA","p":"RM","r":"LAZIO","f":["SJIR","SMUN"]},{"c":"PALMA DI MONTECHIARO","p":"AG","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"PAOLA","p":"CS","r":"CALABRIA","f":["SMUN"]},{"c":"PARABIAGO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"PARMA","p":"PR","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"PATERNO'","p":"CT","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"PAVIA","p":"PV","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"PAVULLO NEL FRIGNANO","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"PERGINE VALSUGANA","p":"TN","r":"TRENTINO ALTO ADIGE","f":["SIRE","SMUN"]},{"c":"PERUGIA","p":"PG","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"PESARO","p":"PU","r":"MARCHE","f":["SIRE","SJIR","SMUN"]},{"c":"PESCARA","p":"PE","r":"ABRUZZO","f":["SIRE","SMUN"]},{"c":"PESCHIERA BORROMEO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"PESCIA","p":"PT","r":"TOSCANA","f":["SMUN"]},{"c":"PIACENZA","p":"PC","r":"EMILIA ROMAGNA","f":["SJIR","SMUN"]},{"c":"PIANEZZA","p":"TO","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"PIETRASANTA","p":"LU","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"PIEVE EMANUELE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"PINEROLO","p":"TO","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"PIOLTELLO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"PIOSSASCO","p":"TO","r":"PIEMONTE","f":["SIRE","SMUN"]},{"c":"PIOVE DI SACCO","p":"PD","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"PISA","p":"PI","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"PISTOIA","p":"PT","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"POGGIBONSI","p":"SI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"POMEZIA","p":"RM","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"POMPEI","p":"NA","r":"CAMPANIA","f":["SIRE","SMUN"]},{"c":"PONSACCO","p":"PI","r":"TOSCANA","f":["SIRE","SMUN"]},{"c":"PONTASSIEVE","p":"FI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"PONTECAGNANO FAIANO","p":"SA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"PONTEDERA","p":"PI","r":"TOSCANA","f":["SIRE","SJIR"]},{"c":"PORCIA","p":"PN","r":"FRIULI VENEZIA GIULIA","f":["SIRE"]},{"c":"PORTICI","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"PORTO MANTOVANO","p":"MN","r":"LOMBARDIA","f":["SMUN"]},{"c":"PORTO SAN GIORGIO","p":"FM","r":"MARCHE","f":["SJIR","SMUN","SSET"]},{"c":"PORTO SANT'ELPIDIO","p":"FM","r":"MARCHE","f":["SIRE","SMUN"]},{"c":"PORTO TORRES","p":"SS","r":"SARDEGNA","f":["SMUN"]},{"c":"PORTOGRUARO","p":"VE","r":"VENETO","f":["SIRE","SMUN"]},{"c":"POTENZA","p":"PZ","r":"BASILICATA","f":["SMUN"]},{"c":"PRATO","p":"PO","r":"TOSCANA","f":["SJIR"]},{"c":"PUTIGNANO","p":"BA","r":"PUGLIA","f":["SMUN"]},{"c":"QUALIANO","p":"NA","r":"CAMPANIA","f":["SIRE","SMUN"]},{"c":"QUARTO","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"QUARTU SANT'ELENA","p":"CA","r":"SARDEGNA","f":["SIRE"]},{"c":"RAGUSA","p":"RG","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"RAPALLO","p":"GE","r":"LIGURIA","f":["SIRE"]},{"c":"RAVENNA","p":"RA","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"RECANATI","p":"MC","r":"MARCHE","f":["SIRE","SMUN"]},{"c":"REGGIO NELL' EMILIA","p":"RE","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"RENDE","p":"CS","r":"CALABRIA","f":["SMUN"]},{"c":"RIBERA","p":"AG","r":"SICILIA","f":["SIRE","SMUN"]},{"c":"RICCIONE","p":"RN","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"RIMINI","p":"RN","r":"EMILIA ROMAGNA","f":["SIRE"]},{"c":"RIVALTA DI TORINO","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR"]},{"c":"ROCCA DI PAPA","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"ROMANO DI LOMBARDIA","p":"BG","r":"LOMBARDIA","f":["SMUN"]},{"c":"ROSIGNANO MARITTIMO","p":"LI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"ROVATO","p":"BS","r":"LOMBARDIA","f":["SJIR","SMUN"]},{"c":"ROVERETO","p":"TN","r":"TRENTINO ALTO ADIGE","f":["SJIR","SMUN"]},{"c":"ROVIGO","p":"RO","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"ROZZANO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"RUBANO","p":"PD","r":"VENETO","f":["SIRE","SMUN"]},{"c":"S.CASCIANO IN VAL DI PESA","p":"FI","r":"TOSCANA","f":["SIRE"]},{"c":"SABAUDIA","p":"LT","r":"LAZIO","f":["SIRE","SJIR","SMUN"]},{"c":"SALERNO","p":"SA","r":"CAMPANIA","f":["SJIR","SMUN"]},{"c":"SALUZZO","p":"CN","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"SAN BENEDETTO DEL TRONTO","p":"AP","r":"MARCHE","f":["SMUN"]},{"c":"SAN BONIFACIO","p":"VR","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"SAN DONA' DI PIAVE","p":"VE","r":"VENETO","f":["SIRE","SJIR"]},{"c":"SAN DONATO MILANESE","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"SAN GIOVANNI LUPATOTO","p":"VR","r":"VENETO","f":["SMUN"]},{"c":"SAN GIOVANNI ROTONDO","p":"FG","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"SAN GIOVANNI VALDARNO","p":"AR","r":"TOSCANA","f":["SIRE"]},{"c":"SAN GIULIANO MILANESE","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"SAN GIULIANO TERME","p":"PI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"SAN LAZZARO DI SAVENA","p":"BO","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"SAN MAURO TORINESE","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"SAN MINIATO","p":"PI","r":"TOSCANA","f":["SIRE","SJIR"]},{"c":"SAN VITO DEI NORMANNI","p":"BR","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"SANREMO","p":"IM","r":"LIGURIA","f":["SIRE","SMUN"]},{"c":"SANSEPOLCRO","p":"AR","r":"TOSCANA","f":["SMUN"]},{"c":"SANT'ANASTASIA","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"SANT'ANTONIO ABATE","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"SANT'ELPIDIO A MARE","p":"FM","r":"MARCHE","f":["SJIR","SMUN","SSET"]},{"c":"SANTA MARIA CAPUA VETERE","p":"CE","r":"CAMPANIA","f":["SJIR","SMUN"]},{"c":"SANTA MARINELLA","p":"RM","r":"LAZIO","f":["SJIR"]},{"c":"SANTARCANGELO DI ROMAGNA","p":"RN","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"SARONNO","p":"VA","r":"LOMBARDIA","f":["SJIR"]},{"c":"SASSARI","p":"SS","r":"SARDEGNA","f":["SMUN"]},{"c":"SASSUOLO","p":"MO","r":"EMILIA ROMAGNA","f":["SIRE","SMUN"]},{"c":"SAVA","p":"TA","r":"PUGLIA","f":["SMUN"]},{"c":"SAVIGLIANO","p":"CN","r":"PIEMONTE","f":["SJIR","SMUN"]},{"c":"SAVIGNANO SUL RUBICONE","p":"FC","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"SAVONA","p":"SV","r":"LIGURIA","f":["SMUN"]},{"c":"SCANDIANO","p":"RE","r":"EMILIA ROMAGNA","f":["SIRE","SJIR","SMUN"]},{"c":"SCHIO","p":"VI","r":"VENETO","f":["SIRE"]},{"c":"SCICLI","p":"RG","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"SCORZE'","p":"VE","r":"VENETO","f":["SMUN"]},{"c":"SEGRATE","p":"MI","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"SENAGO","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR"]},{"c":"SEREGNO","p":"MB","r":"LOMBARDIA","f":["SJIR","SMUN"]},{"c":"SERIATE","p":"BG","r":"LOMBARDIA","f":["SMUN"]},{"c":"SESSA AURUNCA","p":"CE","r":"CAMPANIA","f":["SIRE"]},{"c":"SESTO FIORENTINO","p":"FI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"SESTO SAN GIOVANNI","p":"MI","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"SESTRI LEVANTE","p":"GE","r":"LIGURIA","f":["SIRE","SMUN"]},{"c":"SESTU","p":"CA","r":"SARDEGNA","f":["SMUN"]},{"c":"SETTIMO TORINESE","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"SEVESO","p":"MB","r":"LOMBARDIA","f":["SIRE","SMUN"]},{"c":"SIDERNO","p":"RC","r":"CALABRIA","f":["SIRE","SJIR","SMUN"]},{"c":"SIENA","p":"SI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"SIGNA","p":"FI","r":"TOSCANA","f":["SIRE","SJIR","SMUN"]},{"c":"SILVI","p":"TE","r":"ABRUZZO","f":["SIRE","SMUN"]},{"c":"SOMMA LOMBARDO","p":"VA","r":"LOMBARDIA","f":["SMUN"]},{"c":"SORA","p":"FR","r":"LAZIO","f":["SJIR"]},{"c":"SORRENTO","p":"NA","r":"CAMPANIA","f":["SMUN"]},{"c":"SPINEA","p":"VE","r":"VENETO","f":["SIRE","SMUN"]},{"c":"SPOLTORE","p":"PE","r":"ABRUZZO","f":["SJIR","SMUN","SSET"]},{"c":"SULMONA","p":"AQ","r":"ABRUZZO","f":["SMUN"]},{"c":"SUZZARA","p":"MN","r":"LOMBARDIA","f":["SMUN"]},{"c":"TARANTO","p":"TA","r":"PUGLIA","f":["SJIR","SMUN"]},{"c":"TAURIANOVA","p":"RC","r":"CALABRIA","f":["SIRE","SJIR","SMUN"]},{"c":"TERAMO","p":"TE","r":"ABRUZZO","f":["SMUN","SSET"]},{"c":"TERMINI IMERESE","p":"PA","r":"SICILIA","f":["SIRE","SJIR","SMUN"]},{"c":"TERNI","p":"TR","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"THIENE","p":"VI","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"TIVOLI","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"TODI","p":"PG","r":"UMBRIA","f":["SIRE","SJIR","SMUN"]},{"c":"TOLENTINO","p":"MC","r":"MARCHE","f":["SMUN"]},{"c":"TORREMAGGIORE","p":"FG","r":"PUGLIA","f":["SJIR","SMUN"]},{"c":"TRANI","p":"BT","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"TRECATE","p":"NO","r":"PIEMONTE","f":["SMUN"]},{"c":"TREMESTIERI ETNEO","p":"CT","r":"SICILIA","f":["SMUN"]},{"c":"TRENTO","p":"TN","r":"TRENTINO ALTO ADIGE","f":["SJIR","SMUN"]},{"c":"TRENTOLA-DUCENTA","p":"CE","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"TREVIGLIO","p":"BG","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"TREZZANO SUL NAVIGLIO","p":"MI","r":"LOMBARDIA","f":["SMUN"]},{"c":"TRICASE","p":"LE","r":"PUGLIA","f":["SJIR","SMUN","SSET"]},{"c":"TRIESTE","p":"TS","r":"FRIULI VENEZIA GIULIA","f":["SMUN"]},{"c":"TRIGGIANO","p":"BA","r":"PUGLIA","f":["SIRE","SJIR","SMUN"]},{"c":"UDINE","p":"UD","r":"FRIULI VENEZIA GIULIA","f":["SIRE","SJIR","SMUN"]},{"c":"UMBERTIDE","p":"PG","r":"UMBRIA","f":["SIRE","SMUN"]},{"c":"VALDAGNO","p":"VI","r":"VENETO","f":["SMUN"]},{"c":"VALMONTONE","p":"RM","r":"LAZIO","f":["SMUN"]},{"c":"VALSAMOGGIA","p":"BO","r":"EMILIA ROMAGNA","f":["SMUN"]},{"c":"VASTO","p":"CH","r":"ABRUZZO","f":["SIRE","SMUN"]},{"c":"VENARIA REALE","p":"TO","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"VENEZIA","p":"VE","r":"VENETO","f":["SIRE","SMUN"]},{"c":"VENTIMIGLIA","p":"IM","r":"LIGURIA","f":["SIRE","SJIR","SMUN"]},{"c":"VERBANIA","p":"VB","r":"PIEMONTE","f":["SIRE","SJIR","SMUN"]},{"c":"VERONA","p":"VR","r":"VENETO","f":["SIRE","SJIR"]},{"c":"VIAREGGIO","p":"LU","r":"TOSCANA","f":["SMUN"]},{"c":"VICENZA","p":"VI","r":"VENETO","f":["SJIR"]},{"c":"VICO EQUENSE","p":"NA","r":"CAMPANIA","f":["SIRE","SJIR","SMUN"]},{"c":"VIGEVANO","p":"PV","r":"LOMBARDIA","f":["SIRE"]},{"c":"VIGONZA","p":"PD","r":"VENETO","f":["SIRE","SMUN"]},{"c":"VILLABATE","p":"PA","r":"SICILIA","f":["SJIR","SMUN"]},{"c":"VILLAFRANCA DI VERONA","p":"VR","r":"VENETO","f":["SIRE","SJIR","SMUN"]},{"c":"VIMERCATE","p":"MB","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"VINOVO","p":"TO","r":"PIEMONTE","f":["SIRE","SMUN"]},{"c":"VITTORIA","p":"RG","r":"SICILIA","f":["SMUN"]},{"c":"VOGHERA","p":"PV","r":"LOMBARDIA","f":["SIRE","SJIR","SMUN"]},{"c":"VOLLA","p":"NA","r":"CAMPANIA","f":["SIRE"]}];
+const PROSPECT = [{"c":"Cesena","p":"FC","r":"Emilia-Romagna","pat":"Medievale / Bibliotecario","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Faenza","p":"RA","r":"Emilia-Romagna","pat":"Museale / Ceramica","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Imola","p":"BO","r":"Emilia-Romagna","pat":"Medievale / Archeologico","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"},{"c":"Lugo","p":"RA","r":"Emilia-Romagna","pat":"Medievale / Teatrale","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Ferrara","p":"FE","r":"Emilia-Romagna","pat":"Rinascimentale / Medievale","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Carpi","p":"MO","r":"Emilia-Romagna","pat":"Storico / Memoriale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Senigallia","p":"AN","r":"Marche","pat":"Rinascimentale / Fotografico","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"},{"c":"Civitanova Marche","p":"MC","r":"Marche","pat":"Romano / Teatrale","pri":"ALTA","aff":"MEDIA","sta":"Da contattare"},{"c":"Macerata","p":"MC","r":"Marche","pat":"Rinascimentale / Teatrale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Jesi","p":"AN","r":"Marche","pat":"Rinascimentale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Fano","p":"PU","r":"Marche","pat":"Romano / Rinascimentale","pri":"ALTA","aff":"ALTA","sta":"IN CORSO"},{"c":"Pesaro","p":"PU","r":"Marche","pat":"Rinascimentale / Musicale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Prato","p":"PO","r":"Toscana","pat":"Medievale / Industriale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Pistoia","p":"PT","r":"Toscana","pat":"Medievale / Arte Sacra","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Arezzo","p":"AR","r":"Toscana","pat":"Medievale / Rinascimentale","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Grosseto","p":"GR","r":"Toscana","pat":"Etrusco / Romano","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"},{"c":"Massa","p":"MS","r":"Toscana","pat":"Industriale / Medievale","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Empoli","p":"FI","r":"Toscana","pat":"Medievale / Arte","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"},{"c":"Biella","p":"BI","r":"Piemonte","pat":"Medievale / Industriale","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Vercelli","p":"VC","r":"Piemonte","pat":"Medievale / Naturalistica","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Alessandria","p":"AL","r":"Piemonte","pat":"Militare / Storico","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Novara","p":"NO","r":"Piemonte","pat":"Medievale / Rinascimentale","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Cuneo","p":"CN","r":"Piemonte","pat":"Medievale / Paesaggistico","pri":"MEDIA","aff":"MEDIA","sta":"Da contattare"},{"c":"Lodi","p":"LO","r":"Lombardia","pat":"Medievale / Rinascimentale","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"},{"c":"Cremona","p":"CR","r":"Lombardia","pat":"Musicale / Medievale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Mantova","p":"MN","r":"Lombardia","pat":"Rinascimentale / Medievale","pri":"ALTA","aff":"ALTA","sta":"Da contattare"},{"c":"Sondrio","p":"SO","r":"Lombardia","pat":"Alpino / Storico","pri":"BASSA","aff":"MEDIA","sta":"Da contattare"},{"c":"Vigevano","p":"PV","r":"Lombardia","pat":"Rinascimentale / Leonardesco","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Rovigo","p":"RO","r":"Veneto","pat":"Artistico / Fluviale","pri":"ALTA","aff":"ALTA","sta":"PRIORITÀ"},{"c":"Feltre","p":"BL","r":"Veneto","pat":"Rinascimentale","pri":"MEDIA","aff":"ALTA","sta":"Da contattare"}];
+
+const REPOSITORY = [
+  {target:"Carpi (MO)",data:"Mag. 2026",regione:"Emilia-Romagna / Modena",alert:"G",fonte:"MCT",nota:"Contratto Lotto 2 attivo (giu. 2028, CIG B67DC8D29A). Finestra digitale e Fondazione Fossoli aperta. Affinità Fermo 17/20.",tags:["MCT","5 Layer"]},
+  {target:"Carbonia (SU)",data:"Mag. 2026",regione:"Sardegna / Sulcis-Iglesiente",alert:"R",fonte:"MCT",nota:"Contratto SiMuC scaduto 31/01/2026. Consulenza nuovo modello giuridico in corso (CIG B910DAE037). Azione urgente.",tags:["MCT","5 Layer","URGENTE"]},
+  {target:"Sant'Antioco (SU)",data:"Mag. 2026",regione:"Sardegna / Sulcis-Iglesiente",alert:"G",fonte:"MCT",nota:"PNRR M1C3 Barreca €481K scad. T2-2026. Tecnologie in arrivo senza gestore. Arena Fenicia: concessione triennale.",tags:["MCT","5 Layer"]},
+  {target:"Fonni (NU)",data:"Mag. 2026",regione:"Sardegna / Barbagia di Ollolai",alert:"G",fonte:"MCT",nota:"Maggioli S.p.A. già partner (ANNCSU 17/02/2026). 3 asset senza gestore: Museo Pastorale, CEAS, Gremanu-Madau.",tags:["MCT","5 Layer","Gemini"]},
+  {target:"Udine (UD)",data:"2025",regione:"Friuli Venezia Giulia / Udine",alert:"V",fonte:"Gemini",nota:"Report metodologico di riferimento. Sistema museale provinciale FVG. Punto di partenza del progetto.",tags:["Gemini","Metodologia"]},
+  {target:"Genova / Prov.",data:"2025-26",regione:"Liguria / Genova",alert:"V",fonte:"Gemini",nota:"PNRR Borghi: Campo Ligure €1,58M. PR FESR Liguria: digitalizzazione €7M, efficienza energetica €14M.",tags:["Gemini","Fondi"]},
+  {target:"Siena (SI)",data:"2025-26",regione:"Toscana / Siena",alert:"R",fonte:"Gemini",nota:"Contratto Opera Laboratori scaduto giu. 2023. Stato agitazione sindacale nov. 2025 (CGIL/CISL/UIL). Consultazione mercato set. 2024.",tags:["Gemini","URGENTE"]},
+  {target:"Colle Val d'Elsa (SI)",data:"2025-26",regione:"Toscana / Siena",alert:"G",fonte:"Gemini",nota:"Sistema museale frammentato. Candidatura Capitale 2028. Referente: Dott. Alberto Rabazzi.",tags:["Gemini"]},
+  {target:"Cagliari Città Metropolitana",data:"2025-26",regione:"Sardegna / Cagliari",alert:"G",fonte:"Gemini",nota:"Orientare S.r.l. gestore musei civici (scad. apr. 2027). Progetto Digita Museo Sardegna Ricerche.",tags:["Gemini","Sardegna"]},
+  {target:"Milano Città Metropolitana",data:"2025-26",regione:"Lombardia / Milano",alert:"G",fonte:"Gemini",nota:"Appalto 53/2024 biglietterie Musei Civici Milano (€2,5M, in valutazione). Malcontento sindacale lug. 2025.",tags:["Gemini"]},
+  {target:"Lombardia — Avviso Unico 2026",data:"Feb. 2026",regione:"Lombardia (regionale)",alert:"G",fonte:"Gemini",nota:"€6,05M chiuso apr. 2026. Strategia accesso dettagliata. Template per prossimo ciclo.",tags:["Gemini","Bando"]},
+  {target:"Lombardia — Progetti Integrati 2026-29",data:"Mag. 2026",regione:"Lombardia (regionale)",alert:"R",fonte:"Gemini",nota:"APERTO fino al 24/06/2026. €18M, min. €500K / max €1M per progetto. PFTE richiesto.",tags:["Gemini","Bando","URGENTE"]},
+  {target:"Napoli DMO",data:"2026",regione:"Campania / Napoli",alert:"V",fonte:"Gemini",nota:"Screening DMO. 20M visitatori. America's Cup 2027. PNRR €3,2 mld. Metodologia DMS + Marketing.",tags:["Gemini","Turismo"]},
+  {target:"Tarragona (Spagna)",data:"2025-26",regione:"Catalogna / Tarragona",alert:"V",fonte:"Gemini",nota:"Analisi mercato spagnolo. Riferimento metodologico per espansione internazionale MCT.",tags:["Gemini","Estero"]},
+];
+
+let currentFilter = 'all';
+let sessCount = 0;
+let settings = {};
+
+function loadSettings(){
+  try{
+    const s = localStorage.getItem('mct_v1_settings');
+    if(s) settings = JSON.parse(s);
+    if(settings.apiKey) document.getElementById('api-key').value = settings.apiKey;
+    if(settings.model) document.getElementById('api-model').value = settings.model;
+    if(settings.maxTokens) document.getElementById('max-tokens').value = settings.maxTokens;
+    updateApiStatus();
+  }catch(e){}
+}
+
+function saveSettings(){
+  settings.apiKey = document.getElementById('api-key').value;
+  settings.model = document.getElementById('api-model').value;
+  settings.maxTokens = document.getElementById('max-tokens').value;
+  try{localStorage.setItem('mct_v1_settings', JSON.stringify(settings));}catch(e){}
+  updateApiStatus();
+}
+
+function updateApiStatus(){
+  const dot = document.getElementById('api-sdot');
+  const lbl = document.getElementById('api-slabel');
+  if(settings.apiKey && settings.apiKey.startsWith('sk-ant')){
+    dot.className='sdot sdot-ok'; lbl.textContent='Chiave configurata';
+  }else if(settings.apiKey){
+    dot.className='sdot sdot-warn'; lbl.textContent='Formato chiave non riconosciuto';
+  }else{
+    dot.className='sdot sdot-warn'; lbl.textContent='Chiave non configurata';
+  }
+}
+
+async function testApi(){
+  const lbl=document.getElementById('api-slabel');
+  const dot=document.getElementById('api-sdot');
+  if(!settings.apiKey){lbl.textContent='Inserisci prima la chiave API';return;}
+  lbl.textContent='Test in corso...';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':settings.apiKey,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:settings.model||'claude-sonnet-4-20250514',max_tokens:20,messages:[{role:'user',content:'Rispondi solo: OK'}]})
+    });
+    if(r.ok){dot.className='sdot sdot-ok';lbl.textContent='Connessione riuscita ✓';}
+    else{const e=await r.json();dot.className='sdot sdot-err';lbl.textContent='Errore: '+(e.error?.message||r.status);}
+  }catch(e){dot.className='sdot sdot-err';lbl.textContent='Errore di rete. Verifica la chiave e riprova.';}
+}
+
+function showTab(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='repository') renderRepo();
+}
+
+function onTargetChange(val){
+  const btn=document.getElementById('btn-avvio');
+  if(val.trim().length>2){
+    btn.disabled=false;
+    computeLayer0(val.trim());
+  }else{
+    btn.disabled=true;
+    document.getElementById('layer0-box').style.display='none';
+  }
+}
+
+function parseTarget(raw){
+  const parts=raw.split('/').map(s=>s.trim()).filter(Boolean);
+  if(parts.length>=2) return {regione:parts[0],comune:parts[parts.length-1]};
+  return {regione:'',comune:parts[0]||''};
+}
+
+function findCliente(comune){
+  const q=comune.toUpperCase().trim();
+  return CLIENTI.find(c=>c.c===q)||CLIENTI.find(c=>c.c.includes(q)||q.includes(c.c));
+}
+
+function findProspect(comune){
+  const q=comune.toLowerCase().trim();
+  return PROSPECT.find(p=>p.c.toLowerCase()===q)||PROSPECT.find(p=>p.c.toLowerCase().includes(q)||q.includes(p.c.toLowerCase()));
+}
+
+function findRAG(comune,regione){
+  const qc=comune.toLowerCase(),qr=regione.toLowerCase();
+  return REPOSITORY.filter(r=>r.target.toLowerCase().includes(qc)||r.regione.toLowerCase().includes(qc)||(qr&&r.regione.toLowerCase().includes(qr)));
+}
+
+function computeLayer0(raw){
+  const {regione,comune}=parseTarget(raw);
+  const cli=findCliente(comune);
+  const pro=findProspect(comune);
+  const rag=findRAG(comune,regione);
+  const regEff=regione||(cli?cli.r:'');
+
+  document.getElementById('l0-grid').innerHTML=`
+    <div class="l0-item">
+      <div class="l0-label">Cliente MCT — DB Municipium/Protocollo</div>
+      <div class="l0-val ${cli?'l0-hit':'l0-miss'}">${cli?'✓ '+cli.f.join(' · ')+' — prov. '+cli.p:'Non presente nel DB clienti'}</div>
+    </div>
+    <div class="l0-item">
+      <div class="l0-label">Prospect DB direttore</div>
+      <div class="l0-val ${pro?'l0-warn':'l0-miss'}">${pro?'◉ Priorità '+pro.pri+' — Affinità Fermo: '+pro.aff:'Non nel DB prospect'}</div>
+    </div>
+    <div class="l0-item">
+      <div class="l0-label">Report KB-RAG esistenti</div>
+      <div class="l0-val ${rag.length?'l0-warn':'l0-miss'}">${rag.length?rag.length+' trovati: '+rag.slice(0,2).map(r=>r.target).join(', ')+(rag.length>2?'...':''):'Nessun report precedente'}</div>
+    </div>
+    <div class="l0-item">
+      <div class="l0-label">Regione identificata</div>
+      <div class="l0-val ${regEff?'l0-hit':'l0-miss'}">${regEff||'—'}</div>
+    </div>`;
+
+  const prompt=buildPrompt(comune,regEff,cli,pro,rag);
+  document.getElementById('prompt-text').textContent=prompt;
+  document.getElementById('token-est').textContent='~'+Math.round(prompt.length/4)+' token stimati';
+  document.getElementById('layer0-box').style.display='block';
+}
+
+function buildPrompt(comune,regione,cli,pro,rag){
+  const l0cli=cli
+    ?`Cliente MCT attivo: ${cli.f.join(', ')} — provincia ${cli.p}. Approccio: estendere relazione commerciale esistente verso il settore Cultura.`
+    :'Non risulta cliente MCT su Municipium/Protocollo/Segreteria. Approccio da costruire ex novo.';
+  const l0pro=pro
+    ?`Nel DB Prospect: Priorità ${pro.pri}, Affinità Fermo ${pro.aff}, Patrimonio: ${pro.pat}.`
+    :'Non presente nel DB Prospect del direttore.';
+  const l0rag=rag.length
+    ?`Report KB-RAG esistenti sull'area: ${rag.map(r=>r.target+' ('+r.data+', alert '+r.alert+')').join('; ')}. Usa come base, aggiorna solo i dati mutati.`
+    :'Nessun report precedente. Avvia workflow completo a 5 layer.';
+
+  return `MCT / ${regione||'?'} / ${comune}
+
+LAYER 0 — INCROCIO DATI PROPRIETARI MCT
+${l0cli}
+${l0pro}
+${l0rag}
+
+ISTRUZIONI — WORKFLOW A 5 LAYER
+
+Esegui l'indagine strategica completa per il target ${comune} (${regione||'da contestualizzare'}).
+
+LAYER 1: Contesto regionale e provinciale. Attingi alla KB Gap 4+5 (Schede Regionali): competitor locali dominanti, fondi strutturali attivi, normativa museale regionale, stato accreditamento SMN.
+
+LAYER 2: Ricerche parallele su quattro fronti:
+— A: siti culturali e patrimonio principale del target
+— B: associazioni museali di categoria (AMACI, AMEI, ANMS, Museimpresa, ANCM, SIMBDEA, ATRIUM)
+— C: istituzioni MiC ad autonomia speciale nella provincia
+— D: conferma e dettaglio sui prodotti MCT attivi nel Comune (Layer 0)
+
+LAYER 3: Intelligence esterna — cerca su:
+— BDNCP/ANAC (dati.anticorruzione.it): contratti di gestione culturale attivi (CIG, importo, aggiudicatario, scadenza)
+— OpenCoesione / Italia Domani: fondi PNRR M1C3 assegnati al Comune
+— Albo Pretorio comunale: atti recenti su servizi culturali, proroghe, consulenze
+— Stampa locale (testate P1/P2 dalla KB Gap 6 per la regione): segnali di attrito, malcontento, controversie gestionali
+— Fonti terziarie (Google Maps, TripAdvisor, pagine social): segnali deboli su qualità del servizio
+
+LAYER 4: Calcola lo scoring affinità con il case study Fermo:
+— Criterio 1: Patrimonio sottoutilizzato (0–5 punti)
+— Criterio 2: Assenza digitalizzazione (0–5 punti)
+— Criterio 3: Fondi PNRR disponibili (0–5 punti)
+— Criterio 4: Frammentazione gestionale (0–5 punti)
+— TOTALE /20 con motivazione analitica per criterio
+
+LAYER 5: Produci i due documenti standard:
+— Doc 1: Scheda Riepilogativa (tabella verticale con sezioni colorate, alert cromatico finale)
+— Doc 2: Report Strategico 6–8 pagine con: premessa, Layer 0–4 sviluppati, roadmap alert, gancio commerciale, piano approccio 30/60/90 giorni, call to action, fonti numerate
+
+Applica la KB precaricata: Gap 1 (competitor), Gap 2 (matrice trigger prodotti/servizi MCT applicabili), Gap 3 (normativa rilevante), Gap 4+5 (contesto regionale), Gap 6 (fonti locali per segnali di attrito).
+
+Usa le fonti ufficiali (ANAC, OpenCoesione, siti istituzionali). Cita ogni dato con la fonte numerata [n]. Accentate sempre corrette (è, à, ù). Palette MCT: rosso #9E231E, grigio #7C6A65.`;
+}
+
+function avvia(){
+  const val=document.getElementById('target-input').value.trim();
+  if(!val) return;
+  computeLayer0(val);
+}
+
+function invia(){
+  const prompt=document.getElementById('prompt-text').textContent;
+  if(!prompt) return;
+  sessCount++;
+  document.getElementById('sess-count').textContent=sessCount;
+  document.getElementById('sess-last').textContent=document.getElementById('target-input').value.trim();
+  // Apre Claude.ai in nuova tab con il prompt pronto (fallback se non in contesto claude.ai)
+  if(typeof sendPrompt==='function'){
+    sendPrompt(prompt);
+  }else{
+    // Copia negli appunti
+    navigator.clipboard.writeText(prompt).then(()=>{
+      alert('Prompt copiato negli appunti! Aprilo in Claude.ai e incollalo per avviare la ricerca.');
+    }).catch(()=>{
+      // Fallback: mostra in textarea selezionabile
+      const ta=document.createElement('textarea');
+      ta.value=prompt;
+      ta.style.cssText='position:fixed;top:0;left:0;width:100%;height:200px;z-index:9999;font-size:12px;padding:10px';
+      document.body.appendChild(ta);
+      ta.select();
+      alert('Seleziona tutto e copia il prompt, poi incollalo in Claude.ai');
+    });
+  }
+}
+
+function renderRepo(){
+  const q=(document.getElementById('repo-q')||{value:''}).value.toLowerCase();
+  const list=document.getElementById('repo-list');
+  const filtered=REPOSITORY.filter(r=>{
+    const tm=!q||r.target.toLowerCase().includes(q)||r.regione.toLowerCase().includes(q)||r.nota.toLowerCase().includes(q);
+    const fm=currentFilter==='all'||(currentFilter==='R'&&r.alert==='R')||(currentFilter==='G'&&r.alert==='G')||(currentFilter==='V'&&r.alert==='V')||(currentFilter==='MCT'&&r.fonte==='MCT')||(currentFilter==='Gemini'&&r.fonte==='Gemini');
+    return tm&&fm;
+  });
+  document.getElementById('stat-tot').textContent=REPOSITORY.length;
+  document.getElementById('stat-mct').textContent=REPOSITORY.filter(r=>r.fonte==='MCT').length;
+  document.getElementById('stat-gem').textContent=REPOSITORY.filter(r=>r.fonte==='Gemini').length;
+  if(!filtered.length){list.innerHTML='<div class="empty">Nessun report corrisponde ai filtri selezionati</div>';return;}
+  list.innerHTML=filtered.map(r=>{
+    const al=r.alert;
+    const icon=r.fonte==='MCT'
+      ?'<svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>'
+      :'<svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    const tags=r.tags.map(t=>`<span class="tag ${t==='MCT'?'tag-mct':t==='URGENTE'?'tag-urg':''}">${t}</span>`).join('');
+    const al_label=al==='R'?'Urgente':al==='G'?'Monitorare':'Archivio';
+    return `<div class="repo-card">
+      <div class="repo-icon">${icon}</div>
+      <div class="repo-body">
+        <div class="repo-top-row">
+          <span class="repo-target">${r.target}</span>
+          <span class="badge badge-${al}"><span class="dot dot-${al}"></span>${al_label}</span>
+          <span class="repo-date">${r.data}</span>
+        </div>
+        <div class="repo-region">${r.regione} &middot; ${r.fonte}</div>
+        <div class="repo-note">${r.nota}</div>
+        <div class="repo-tags">${tags}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRepo();
+}
+
+function clearSession(){
+  sessCount=0;
+  document.getElementById('sess-count').textContent='0';
+  document.getElementById('sess-last').textContent='—';
+  document.getElementById('target-input').value='';
+  document.getElementById('layer0-box').style.display='none';
+  document.getElementById('btn-avvio').disabled=true;
+}
+
+loadSettings();
+renderRepo();
+</script>
+</body>
+</html>
